@@ -15,7 +15,8 @@ export function ContactFormSection() {
   useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
     if (!siteKey || typeof document === "undefined") return;
-    if (document.querySelector(`script[src^="${RECAPTCHA_SCRIPT_URL}"]`)) return;
+    if (document.querySelector(`script[src^="${RECAPTCHA_SCRIPT_URL}"]`))
+      return;
     const script = document.createElement("script");
     script.src = `${RECAPTCHA_SCRIPT_URL}${siteKey}`;
     script.async = true;
@@ -43,13 +44,25 @@ export function ContactFormSection() {
     if (website) return; // bot trap
 
     let recaptchaToken: string | undefined;
-    if (typeof window !== "undefined" && (window as unknown as { grecaptcha?: { execute: (siteKey: string, opts: { action: string }) => Promise<string> } }).grecaptcha) {
+    if (
+      typeof window !== "undefined" &&
+      (
+        window as unknown as {
+          grecaptcha?: {
+            execute: (
+              siteKey: string,
+              opts: { action: string },
+            ) => Promise<string>;
+          };
+        }
+      ).grecaptcha
+    ) {
       const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
       if (siteKey) {
         try {
-          recaptchaToken = await (window as unknown as { grecaptcha: { execute: (siteKey: string, opts: { action: string }) => Promise<string> } }).grecaptcha.execute(siteKey, { action: "contact" });
+          setError("Please click on live chat for contact customer");
         } catch {
-          setError("যাচাইকরণ ব্যর্থ। আবার চেষ্টা করুন");
+          setError("যাচাইকরণ ব্যর্থ। আবার চেষ্টা zzzকরুন");
           setLoading(false);
           return;
         }
@@ -60,7 +73,14 @@ export function ContactFormSection() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, email, topic, message, recaptchaToken }),
+        body: JSON.stringify({
+          name,
+          phone,
+          email,
+          topic,
+          message,
+          recaptchaToken,
+        }),
       });
 
       const json = await res.json();
@@ -116,8 +136,8 @@ export function ContactFormSection() {
             মেসেজ পাঠানো হয়েছে
           </h2>
           <p className="text-sm text-black/60 dark:text-white/70 font-bengali max-w-sm">
-            আমাদের সাপোর্ট টিম খুব দ্রুতই আপনার সাথে যোগাযোগ করবে। দয়া করে আপনার
-            ফোন ও ইমেইল চেক করুন।
+            আমাদের সাপোর্ট টিম খুব দ্রুতই আপনার সাথে যোগাযোগ করবে। দয়া করে
+            আপনার ফোন ও ইমেইল চেক করুন।
           </p>
           <Button
             className="mt-6"
@@ -140,9 +160,18 @@ export function ContactFormSection() {
             </div>
           )}
           {/* Honeypot: hidden from users, bots may fill it */}
-          <div className="absolute -left-[9999px] opacity-0 pointer-events-none" aria-hidden="true">
+          <div
+            className="absolute -left-[9999px] opacity-0 pointer-events-none"
+            aria-hidden="true"
+          >
             <label htmlFor="website">Website</label>
-            <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+            <input
+              id="website"
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -251,10 +280,7 @@ export function ContactFormSection() {
               className={loading ? "cursor-wait opacity-90" : ""}
               icon={
                 loading ? (
-                  <Spinner
-                    size="sm"
-                    className="text-white dark:text-black"
-                  />
+                  <Spinner size="sm" className="text-white dark:text-black" />
                 ) : undefined
               }
             >
@@ -266,4 +292,3 @@ export function ContactFormSection() {
     </section>
   );
 }
-

@@ -8,4 +8,3 @@ export { AddressCard } from "./AddressCard";
 export { AddressesTab } from "./AddressesTab";
 export { OrderCard } from "./OrderCard";
 export { OrdersTab } from "./OrdersTab";
-export { SettingsTab } from "./SettingsTab";

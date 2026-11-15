@@ -9,7 +9,6 @@ import { ProfileTabs, type ProfileTabId } from "./ProfileTabs";
 import { PersonalInfoTab } from "./PersonalInfoTab";
 import { AddressesTab } from "./AddressesTab";
 import { OrdersTab } from "./OrdersTab";
-import { SettingsTab } from "./SettingsTab";
 
 export function ProfileView() {
   const { user } = useAuth();
@@ -73,7 +72,12 @@ export function ProfileView() {
 
         <ProfileTabs activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <div className="space-y-6" role="tabpanel" id={`tab-${activeTab}`} aria-labelledby={`tab-btn-${activeTab}`}>
+        <div
+          className="space-y-6"
+          role="tabpanel"
+          id={`tab-${activeTab}`}
+          aria-labelledby={`tab-btn-${activeTab}`}
+        >
           {activeTab === "personal" && (
             <PersonalInfoTab
               name={name}
@@ -83,7 +87,6 @@ export function ProfileView() {
           )}
           {activeTab === "addresses" && <AddressesTab />}
           {activeTab === "orders" && <OrdersTab />}
-          {activeTab === "settings" && <SettingsTab />}
         </div>
       </div>
     </main>
