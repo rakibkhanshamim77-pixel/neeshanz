@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,7 +9,6 @@ import {
   PlusIcon,
   TrashIcon,
   XMarkIcon,
-  PhotoIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 
@@ -42,6 +41,50 @@ function generateId() {
   return Math.random().toString(36).substring(2, 10);
 }
 
+/** Accepts absolute http(s) URLs or site-relative paths like /images/a.jpg */
+function isValidImageUrl(value: string) {
+  const v = value.trim();
+  if (!v) return false;
+  if (v.startsWith("/") && !v.startsWith("//")) return true;
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Preview of a remote image; shows a fallback if the URL fails to load. */
+function ImagePreview({
+  src,
+  alt,
+  sizes,
+}: {
+  src: string;
+  alt: string;
+  sizes?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-[#1a1a1a] px-2 text-center text-[10px] text-gray-500 dark:text-gray-400">
+        Can&apos;t load image
+      </div>
+    );
+  }
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      className="object-cover"
+      unoptimized
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export default function CreateProductPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -58,11 +101,11 @@ export default function CreateProductPage() {
   const [regularPrice, setRegularPrice] = useState("");
   const [salePrice, setSalePrice] = useState("");
 
-  // Images
+  // Images (URLs)
   const [mainImage, setMainImage] = useState("");
-  const [mainImageUploading, setMainImageUploading] = useState(false);
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
-  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryInput, setGalleryInput] = useState("");
+  const [galleryError, setGalleryError] = useState("");
 
   // Colors
   const [colors, setColors] = useState<ColorVariant[]>([]);
@@ -86,74 +129,30 @@ export default function CreateProductPage() {
         )
       : 0;
 
-  const uploadImage = useCallback(
-    async (file: File): Promise<string> => {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", "products");
-      const res = await fetch("/api/admin/upload", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      // API returns { success, data: { url, filename, size } }
-      const url = data.data?.url ?? data.url;
-      if (!url || typeof url !== "string") throw new Error("Upload failed");
-      return url;
-    },
-    [],
-  );
+  const mainImageTrimmed = mainImage.trim();
 
-  const handleMainImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setMainImageUploading(true);
-    try {
-      const url = await uploadImage(file);
-      setMainImage(url);
-    } catch {
-      /* silently fail */
-    } finally {
-      setMainImageUploading(false);
-    }
-  };
+  // Gallery: accepts one URL, or several separated by spaces, commas or new lines
+  const addGalleryImages = () => {
+    const urls = galleryInput
+      .split(/[\s,]+/)
+      .map((u) => u.trim())
+      .filter(Boolean);
+    if (urls.length === 0) return;
 
-  const handleGalleryUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const files = e.target.files;
-    if (!files?.length) return;
-    setGalleryUploading(true);
-    try {
-      const urls = await Promise.all(
-        Array.from(files).map((f) => uploadImage(f)),
+    const invalid = urls.filter((u) => !isValidImageUrl(u));
+    if (invalid.length > 0) {
+      setGalleryError(
+        "Enter a valid image URL starting with http:// or https://",
       );
-      const validUrls = urls.filter((u): u is string => Boolean(u && typeof u === "string"));
-      setGalleryImages((prev) => [...prev, ...validUrls]);
-    } catch {
-      /* silently fail */
-    } finally {
-      setGalleryUploading(false);
+      return;
     }
-  };
 
-  const handleColorImageUpload = async (
-    colorId: string,
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const url = await uploadImage(file);
-      setColors((prev) =>
-        prev.map((c) => (c.id === colorId ? { ...c, image: url } : c)),
-      );
-    } catch {
-      /* silently fail */
-    }
+    setGalleryImages((prev) => [
+      ...prev,
+      ...urls.filter((u) => !prev.includes(u)),
+    ]);
+    setGalleryInput("");
+    setGalleryError("");
   };
 
   const addColor = () => {
@@ -217,14 +216,28 @@ export default function CreateProductPage() {
     setSubmitting(true);
     setSubmitError("");
     try {
+      if (mainImageTrimmed && !isValidImageUrl(mainImageTrimmed)) {
+        setSubmitError("Main image URL is not valid.");
+        return;
+      }
+      const badColor = colors.find(
+        (c) => c.image.trim() && !isValidImageUrl(c.image),
+      );
+      if (badColor) {
+        setSubmitError(
+          `Image URL for color "${badColor.name || "unnamed"}" is not valid.`,
+        );
+        return;
+      }
+
       const allImages = [
-        ...(mainImage && mainImage.trim() ? [{ url: mainImage, alt: name }] : []),
+        ...(mainImageTrimmed ? [{ url: mainImageTrimmed, alt: name }] : []),
         ...galleryImages
-          .filter((url) => url && typeof url === "string" && url.trim() !== "")
-          .map((url) => ({ url, alt: name })),
+          .filter((url) => isValidImageUrl(url))
+          .map((url) => ({ url: url.trim(), alt: name })),
       ];
       if (allImages.length === 0) {
-        setSubmitError("Add at least one image (main or gallery).");
+        setSubmitError("Add at least one image URL (main or gallery).");
         return;
       }
 
@@ -237,7 +250,10 @@ export default function CreateProductPage() {
         price: parseFloat(regularPrice) || 0,
         salePrice: salePrice ? parseFloat(salePrice) : undefined,
         images: allImages,
-        colors: colors.map(({ id: _, ...rest }) => rest),
+        colors: colors.map(({ id: _, image, ...rest }) => ({
+          ...rest,
+          image: image.trim(),
+        })),
         sizes: sizes.map(({ id: _, ...rest }) => rest),
         features: features.filter(Boolean),
         status,
@@ -403,66 +419,97 @@ export default function CreateProductPage() {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-5">
           Images
         </h2>
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Main Image */}
           <div>
-            <label className={labelClass}>Main Image (Thumbnail)</label>
-            {mainImage && mainImage.trim() !== "" ? (
-              <div className="relative w-40 h-40 rounded-xl overflow-hidden group">
-                <Image
-                  src={mainImage}
+            <label htmlFor="main-image-url" className={labelClass}>
+              Main Image URL (Thumbnail)
+            </label>
+            <input
+              id="main-image-url"
+              type="url"
+              value={mainImage}
+              onChange={(e) => setMainImage(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              className={inputClass}
+            />
+            {mainImageTrimmed && !isValidImageUrl(mainImageTrimmed) && (
+              <p className="mt-2 text-xs text-red-400">
+                Enter a valid URL starting with http:// or https://
+              </p>
+            )}
+            {isValidImageUrl(mainImageTrimmed) && (
+              <div className="relative mt-3 w-40 h-40 rounded-xl overflow-hidden group">
+                <ImagePreview
+                  key={mainImageTrimmed}
+                  src={mainImageTrimmed}
                   alt="Main product"
-                  fill
-                  className="object-cover"
-                  unoptimized={mainImage.startsWith("/")}
+                  sizes="160px"
                 />
                 <button
                   type="button"
                   onClick={() => setMainImage("")}
-                  className="absolute top-2 right-2 p-1 bg-red-600 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Remove main image"
+                  className="absolute top-2 right-2 p-1 bg-red-600 rounded-lg text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                 >
                   <XMarkIcon className="w-4 h-4" />
                 </button>
               </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center w-40 h-40 border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-xl cursor-pointer hover:border-teal-500/50 transition-colors">
-                {mainImageUploading ? (
-                  <Spinner size="md" className="text-teal-500" />
-                ) : (
-                  <>
-                    <PhotoIcon className="w-8 h-8 text-gray-400 dark:text-gray-500 mb-1" />
-                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                      Upload image
-                    </span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleMainImageUpload}
-                  className="hidden"
-                />
-              </label>
             )}
           </div>
 
           {/* Gallery */}
           <div>
-            <label className={labelClass}>Gallery Images</label>
-            <div className="flex flex-wrap gap-3">
-              {galleryImages.map((url, i) => {
-                if (!url || typeof url !== "string" || url.trim() === "") return null;
-                return (
+            <label htmlFor="gallery-image-url" className={labelClass}>
+              Gallery Image URLs
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="gallery-image-url"
+                type="text"
+                value={galleryInput}
+                onChange={(e) => {
+                  setGalleryInput(e.target.value);
+                  if (galleryError) setGalleryError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addGalleryImages();
+                  }
+                }}
+                placeholder="Paste an image URL and press Enter"
+                className={inputClass}
+              />
+              <button
+                type="button"
+                onClick={addGalleryImages}
+                className="inline-flex shrink-0 items-center gap-1.5 px-4 rounded-xl text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+              >
+                <PlusIcon className="w-4 h-4" />
+                Add
+              </button>
+            </div>
+            {galleryError ? (
+              <p className="mt-2 text-xs text-red-400">{galleryError}</p>
+            ) : (
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                You can paste several URLs at once, separated by commas, spaces
+                or new lines.
+              </p>
+            )}
+
+            {galleryImages.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-3">
+                {galleryImages.map((url, i) => (
                   <div
                     key={`${i}-${url}`}
                     className="relative w-28 h-28 rounded-xl overflow-hidden group"
                   >
-                    <Image
+                    <ImagePreview
                       src={url}
                       alt={`Gallery ${i + 1}`}
-                      fill
-                      className="object-cover"
-                      unoptimized={url.startsWith("/")}
+                      sizes="112px"
                     />
                     <button
                       type="button"
@@ -471,33 +518,15 @@ export default function CreateProductPage() {
                           prev.filter((_, idx) => idx !== i),
                         )
                       }
-                      className="absolute top-1.5 right-1.5 p-1 bg-red-600 rounded-lg text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Remove gallery image ${i + 1}`}
+                      className="absolute top-1.5 right-1.5 p-1 bg-red-600 rounded-lg text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                     >
                       <XMarkIcon className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                );
-              })}
-              <label className="flex flex-col items-center justify-center w-28 h-28 border-2 border-dashed border-gray-300 dark:border-[#2a2a2a] rounded-xl cursor-pointer hover:border-teal-500/50 transition-colors">
-                {galleryUploading ? (
-                  <Spinner size="sm" className="text-teal-500" />
-                ) : (
-                  <>
-                    <PlusIcon className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                    <span className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
-                      Add images
-                    </span>
-                  </>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleGalleryUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -523,91 +552,88 @@ export default function CreateProductPage() {
           </p>
         ) : (
           <div className="space-y-4">
-            {colors.map((color) => (
-              <div
-                key={color.id}
-                className="flex flex-col sm:flex-row items-start gap-3 p-4 bg-gray-50 dark:bg-[#0d0d0d] rounded-xl"
-              >
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-                  <div>
-                    <label className={labelClass}>Color Name</label>
-                    <input
-                      type="text"
-                      value={color.name}
-                      onChange={(e) =>
-                        updateColor(color.id, "name", e.target.value)
-                      }
-                      placeholder="e.g. Navy Blue"
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>Hex Color</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={color.hex}
-                        onChange={(e) =>
-                          updateColor(color.id, "hex", e.target.value)
-                        }
-                        className="w-10 h-10 rounded-lg border-none cursor-pointer bg-transparent"
-                      />
+            {colors.map((color) => {
+              const colorImage = color.image.trim();
+              return (
+                <div
+                  key={color.id}
+                  className="flex flex-col sm:flex-row items-start gap-3 p-4 bg-gray-50 dark:bg-[#0d0d0d] rounded-xl"
+                >
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                    <div>
+                      <label className={labelClass}>Color Name</label>
                       <input
                         type="text"
-                        value={color.hex}
+                        value={color.name}
                         onChange={(e) =>
-                          updateColor(color.id, "hex", e.target.value)
+                          updateColor(color.id, "name", e.target.value)
                         }
+                        placeholder="e.g. Navy Blue"
                         className={inputClass}
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className={labelClass}>Color Image</label>
-                    {color.image && color.image.trim() !== "" ? (
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden">
-                        <Image
-                          src={color.image}
-                          alt={color.name || "Color"}
-                          fill
-                          className="object-cover"
-                          unoptimized={color.image.startsWith("/")}
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateColor(color.id, "image", "")
-                          }
-                          className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                        >
-                          <XMarkIcon className="w-3.5 h-3.5 text-white" />
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-100 dark:bg-[#1a1a1a] rounded-lg cursor-pointer text-xs text-gray-500 hover:text-teal-500 transition-colors">
-                        <PhotoIcon className="w-4 h-4" />
-                        Upload
+                    <div>
+                      <label className={labelClass}>Hex Color</label>
+                      <div className="flex items-center gap-2">
                         <input
-                          type="file"
-                          accept="image/*"
+                          type="color"
+                          value={color.hex}
                           onChange={(e) =>
-                            handleColorImageUpload(color.id, e)
+                            updateColor(color.id, "hex", e.target.value)
                           }
-                          className="hidden"
+                          className="w-10 h-10 rounded-lg border-none cursor-pointer bg-transparent"
                         />
-                      </label>
-                    )}
+                        <input
+                          type="text"
+                          value={color.hex}
+                          onChange={(e) =>
+                            updateColor(color.id, "hex", e.target.value)
+                          }
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Color Image URL</label>
+                      <div className="flex items-center gap-2">
+                        {isValidImageUrl(colorImage) && (
+                          <div className="relative w-10 h-10 shrink-0 rounded-lg overflow-hidden">
+                            <ImagePreview
+                              key={colorImage}
+                              src={colorImage}
+                              alt={color.name || "Color"}
+                              sizes="40px"
+                            />
+                          </div>
+                        )}
+                        <input
+                          type="url"
+                          value={color.image}
+                          onChange={(e) =>
+                            updateColor(color.id, "image", e.target.value)
+                          }
+                          placeholder="https://example.com/navy.jpg"
+                          className={inputClass}
+                        />
+                      </div>
+                      {colorImage && !isValidImageUrl(colorImage) && (
+                        <p className="mt-2 text-xs text-red-400">
+                          Enter a valid URL.
+                        </p>
+                      )}
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => removeColor(color.id)}
+                    aria-label="Remove color"
+                    className="p-2 text-red-500 hover:text-red-400 transition-colors mt-6 sm:mt-0"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeColor(color.id)}
-                  className="p-2 text-red-500 hover:text-red-400 transition-colors mt-6 sm:mt-0"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -703,6 +729,7 @@ export default function CreateProductPage() {
                 <button
                   type="button"
                   onClick={() => removeSize(size.id)}
+                  aria-label="Remove size"
                   className="p-2 text-red-500 hover:text-red-400 transition-colors mt-6 sm:mt-0"
                 >
                   <TrashIcon className="w-4 h-4" />
@@ -746,6 +773,7 @@ export default function CreateProductPage() {
                 <button
                   type="button"
                   onClick={() => removeFeature(i)}
+                  aria-label="Remove feature"
                   className="p-2 text-red-500 hover:text-red-400 transition-colors"
                 >
                   <TrashIcon className="w-4 h-4" />

@@ -270,7 +270,7 @@ export function FeaturedProducts() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader
-        title="আপনার স্টাইলকে দিন নতুন মাত্রা"
+          title="আপনার স্টাইলকে দিন নতুন মাত্রা"
           badge="শুধু আপনার জন্য"
           description="Neeshanz-এর সাথে উন্নত করুন আপনার স্টাইল — যেখানে প্রতিটি ডিজাইন ব্যক্তিত্বের প্রতিফলন বহন করে।"
           titleId="featured-heading"
