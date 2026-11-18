@@ -99,7 +99,7 @@ export function PasswordInput({
         <input
           id={id}
           type={show ? "text" : "password"}
-          className="w-full py-3 pl-12 pr-12 bg-[#111111] dark:bg-[#111111] border border-transparent focus:border-gray-800 dark:focus:border-white rounded-sm text-sm text-white dark:text-white placeholder-gray-500 focus:outline-none! transition-colors"
+          className="w-full py-3 pl-12 pr-12 bg-[#F8FAFC] dark:bg-[#111111] border border-gray-200 dark:border-transparent focus:border-gray-400 dark:focus:border-white rounded-sm text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none transition-colors"
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
           {...props}

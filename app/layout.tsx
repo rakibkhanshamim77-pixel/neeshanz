@@ -19,12 +19,9 @@ const notoSansBengali = Noto_Sans_Bengali({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Neeshanz - Fashion & Compfort",
-    template: "Neeshanz - %s",
-  },
+  title: "Neeshanz - Next Level Tees",
   description:
-    "Shop Neeshanz for trendy fashion, stylish clothing, and everyday comfort. Discover quality outfits that combine modern style, affordability, and comfort. Free delivery available.",
+    "Discover premium T-shirts that blend modern style, comfort & confidence. Upgrade your everyday look with Neeshanz.",
   keywords: [
     "Online Shopping Bangladesh",
     "Fashion Store Bangladesh",

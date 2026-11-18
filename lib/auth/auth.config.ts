@@ -7,13 +7,9 @@ import Facebook from "next-auth/providers/facebook";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { isValidObjectId } from "mongoose";
 
-
 import { connectDB } from "@/lib/db/connectDB";
 
-import User, {
-  UserRole,
-  type IUser,
-} from "@/lib/models/User";
+import User, { UserRole, type IUser } from "@/lib/models/User";
 
 import { LoginSchema } from "@/lib/validation";
 
@@ -22,11 +18,7 @@ import clientPromise from "./mongo-adapter";
 
 // ─── Roles ─────────────────────────────────────────────────
 
-const APP_ROLES: readonly AppRole[] = [
-  "user",
-  "admin",
-  "moderator",
-];
+const APP_ROLES: readonly AppRole[] = ["user", "admin", "moderator"];
 
 function toAppRole(value: unknown): AppRole {
   return APP_ROLES.find((role) => role === value) ?? "user";
@@ -38,19 +30,12 @@ type SocialProvider = "google" | "facebook";
 
 type SessionUserFields = Pick<
   IUser,
-  | "name"
-  | "email"
-  | "phone"
-  | "profileImage"
-  | "role"
-  | "permissions"
+  "name" | "email" | "phone" | "profileImage" | "role" | "permissions"
 >;
 
 // ─── Phone Normalization ───────────────────────────────────
 
-function normalizePhoneForLookup(
-  value: string,
-): string | null {
+function normalizePhoneForLookup(value: string): string | null {
   const digits = value.trim().replace(/\D/g, "");
 
   if (digits.length === 11 && digits.startsWith("01")) {
@@ -87,18 +72,9 @@ async function saveSocialUser({
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  const socialField =
-    provider === "google" ? "googleId" : "facebookId";
+  const socialField = provider === "google" ? "googleId" : "facebookId";
 
-  const normalizedName =
-    name?.trim().slice(0, 50) || "User";
-
-  console.log("[AUTH] Saving social user:", {
-    provider,
-    email: normalizedEmail,
-    database: User.db.name,
-    collection: User.collection.name,
-  });
+  const normalizedName = name?.trim().slice(0, 50) || "User";
 
   // Check email ownership.
   const existingEmailUser = await User.findOne({
@@ -115,25 +91,15 @@ async function saveSocialUser({
     existingEmailUser?.get(socialField) &&
     existingEmailUser.get(socialField) !== providerAccountId
   ) {
-    throw new Error(
-      "This email is linked to another social account.",
-    );
+    throw new Error("This email is linked to another social account.");
   }
 
-  if (
-    existingSocialUser &&
-    existingSocialUser.email !== normalizedEmail
-  ) {
-    throw new Error(
-      "This social account belongs to another email.",
-    );
+  if (existingSocialUser && existingSocialUser.email !== normalizedEmail) {
+    throw new Error("This social account belongs to another email.");
   }
 
   const filter = {
-    $or: [
-      { email: normalizedEmail },
-      { [socialField]: providerAccountId },
-    ],
+    $or: [{ email: normalizedEmail }, { [socialField]: providerAccountId }],
   };
 
   const update = {
@@ -153,16 +119,12 @@ async function saveSocialUser({
     },
   };
 
-  const savedUser = await User.findOneAndUpdate(
-    filter,
-    update,
-    {
-      upsert: true,
-      new: true,
-      runValidators: true,
-      setDefaultsOnInsert: true,
-    },
-  );
+  const savedUser = await User.findOneAndUpdate(filter, update, {
+    upsert: true,
+    new: true,
+    runValidators: true,
+    setDefaultsOnInsert: true,
+  });
 
   if (!savedUser) {
     throw new Error("MongoDB user save failed.");
@@ -212,30 +174,21 @@ export const authConfig: NextAuthConfig = {
 
       async authorize(credentials) {
         try {
-          if (
-            !credentials?.emailOrPhone ||
-            !credentials?.password
-          ) {
-            throw new Error(
-              "ইমেইল/ফোন এবং পাসওয়ার্ড প্রয়োজন",
-            );
+          if (!credentials?.emailOrPhone || !credentials?.password) {
+            throw new Error("ইমেইল/ফোন এবং পাসওয়ার্ড প্রয়োজন");
           }
 
           const validated = LoginSchema.parse({
-            emailOrPhone: String(
-              credentials.emailOrPhone,
-            ).trim(),
+            emailOrPhone: String(credentials.emailOrPhone).trim(),
 
             password: String(credentials.password),
           });
 
           await connectDB();
 
-          const emailOrPhone =
-            validated.emailOrPhone.trim();
+          const emailOrPhone = validated.emailOrPhone.trim();
 
-          const normalizedPhone =
-            normalizePhoneForLookup(emailOrPhone);
+          const normalizedPhone = normalizePhoneForLookup(emailOrPhone);
 
           const query = normalizedPhone
             ? {
@@ -249,13 +202,10 @@ export const authConfig: NextAuthConfig = {
                 email: emailOrPhone.toLowerCase(),
               };
 
-          const dbUser = await User.findOne(query)
-            .select("+password");
+          const dbUser = await User.findOne(query).select("+password");
 
           if (!dbUser) {
-            throw new Error(
-              "ব্যবহারকারী খুঁজে পাওয়া যায়নি",
-            );
+            throw new Error("ব্যবহারকারী খুঁজে পাওয়া যায়নি");
           }
 
           if (!dbUser.isActive) {
@@ -270,10 +220,9 @@ export const authConfig: NextAuthConfig = {
             );
           }
 
-          const passwordMatch =
-            await dbUser.comparePassword(
-              String(credentials.password),
-            );
+          const passwordMatch = await dbUser.comparePassword(
+            String(credentials.password),
+          );
 
           if (!passwordMatch) {
             throw new Error("ভুল পাসওয়ার্ড");
@@ -290,17 +239,12 @@ export const authConfig: NextAuthConfig = {
             role: toAppRole(dbUser.role),
             phone: dbUser.phone ?? undefined,
             image: dbUser.profileImage ?? undefined,
-            permissions: Array.isArray(
-              dbUser.permissions,
-            )
+            permissions: Array.isArray(dbUser.permissions)
               ? [...dbUser.permissions]
               : [],
           };
         } catch (error) {
-          console.error(
-            "[AUTH] Credentials error:",
-            error,
-          );
+          console.error("[AUTH] Credentials error:", error);
 
           if (error instanceof Error) {
             throw error;
@@ -337,10 +281,7 @@ export const authConfig: NextAuthConfig = {
         return true;
       }
 
-      if (
-        account.provider !== "google" &&
-        account.provider !== "facebook"
-      ) {
+      if (account.provider !== "google" && account.provider !== "facebook") {
         return false;
       }
 
@@ -353,21 +294,13 @@ export const authConfig: NextAuthConfig = {
           throw new Error("OAuth email is missing.");
         }
 
-        if (
-          provider === "google" &&
-          profile?.email_verified !== true
-        ) {
-          throw new Error(
-            "Google email is not verified.",
-          );
+        if (provider === "google" && profile?.email_verified !== true) {
+          throw new Error("Google email is not verified.");
         }
 
         // Do not claim Facebook email verification without
         // a verified email claim from the provider.
-        if (
-          provider === "facebook" &&
-          profile?.verified !== true
-        ) {
+        if (provider === "facebook" && profile?.verified !== true) {
           throw new Error(
             "Facebook email verification could not be confirmed.",
           );
@@ -384,10 +317,7 @@ export const authConfig: NextAuthConfig = {
 
         return true;
       } catch (error) {
-        console.error(
-          "[AUTH] SOCIAL LOGIN FAILED:",
-          error,
-        );
+        console.error("[AUTH] SOCIAL LOGIN FAILED:", error);
 
         return false;
       }
@@ -402,18 +332,13 @@ export const authConfig: NextAuthConfig = {
         token.role = toAppRole(user.role);
         token.phone = user.phone ?? null;
 
-        token.permissions = Array.isArray(
-          user.permissions,
-        )
+        token.permissions = Array.isArray(user.permissions)
           ? [...user.permissions]
           : [];
       }
 
       // Fetch application user after OAuth login.
-      if (
-        account?.type === "oauth" &&
-        user?.email
-      ) {
+      if (account?.type === "oauth" && user?.email) {
         await connectDB();
 
         const dbUser = await User.findOne({
@@ -421,9 +346,7 @@ export const authConfig: NextAuthConfig = {
         });
 
         if (!dbUser) {
-          throw new Error(
-            "OAuth user was not found in application database.",
-          );
+          throw new Error("OAuth user was not found in application database.");
         }
 
         token.id = dbUser._id.toString();
@@ -431,9 +354,7 @@ export const authConfig: NextAuthConfig = {
         token.role = toAppRole(dbUser.role);
         token.phone = dbUser.phone ?? null;
 
-        token.permissions = Array.isArray(
-          dbUser.permissions,
-        )
+        token.permissions = Array.isArray(dbUser.permissions)
           ? [...dbUser.permissions]
           : [];
       }
@@ -452,51 +373,33 @@ export const authConfig: NextAuthConfig = {
       session.user.role = toAppRole(token.role);
       session.user.phone = token.phone ?? null;
 
-      session.user.permissions = Array.isArray(
-        token.permissions,
-      )
+      session.user.permissions = Array.isArray(token.permissions)
         ? (token.permissions as string[])
         : [];
 
-      if (
-        token.id &&
-        isValidObjectId(String(token.id))
-      ) {
+      if (token.id && isValidObjectId(String(token.id))) {
         try {
           await connectDB();
 
           const dbUser = await User.findById(token.id)
-            .select(
-              "name email phone profileImage role permissions",
-            )
+            .select("name email phone profileImage role permissions")
             .lean<SessionUserFields>();
 
           if (dbUser) {
-            session.user.name =
-              dbUser.name ?? session.user.name;
+            session.user.name = dbUser.name ?? session.user.name;
 
-            session.user.email =
-              dbUser.email ?? session.user.email;
+            session.user.email = dbUser.email ?? session.user.email;
 
-            session.user.phone =
-              dbUser.phone ?? null;
+            session.user.phone = dbUser.phone ?? null;
 
-            session.user.image =
-              dbUser.profileImage ??
-              session.user.image;
+            session.user.image = dbUser.profileImage ?? session.user.image;
 
-            session.user.role = toAppRole(
-              dbUser.role ?? token.role,
-            );
+            session.user.role = toAppRole(dbUser.role ?? token.role);
 
-            session.user.permissions =
-              dbUser.permissions ?? [];
+            session.user.permissions = dbUser.permissions ?? [];
           }
         } catch (error) {
-          console.error(
-            "[AUTH] Session error:",
-            error,
-          );
+          console.error("[AUTH] Session error:", error);
         }
       }
 

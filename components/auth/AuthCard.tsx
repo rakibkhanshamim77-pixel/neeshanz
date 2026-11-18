@@ -8,8 +8,8 @@ interface AuthCardProps {
 
 export function AuthCard({ title, subtitle, children }: AuthCardProps) {
   return (
-    <div className="bg-black dark:bg-black border border-gray-800 dark:border-gray-800 rounded-2xl p-8">
-      <h2 className="text-2xl font-bold text-white dark:text-white mb-2 text-center font-bengali">
+    <div className="bg-white text-black dark:bg-black dark:text-white border border-gray-800 dark:border-gray-800 rounded-2xl p-8">
+      <h2 className="text-2xl font-bold text-black dark:text-white mb-2 text-center font-bengali">
         {title}
       </h2>
       {subtitle && (

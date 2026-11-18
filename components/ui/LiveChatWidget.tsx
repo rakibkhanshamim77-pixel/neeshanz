@@ -337,7 +337,7 @@ export default function LiveChatWidget() {
           </div>
           <button
             onClick={handleToggle}
-            className="text-white/80 hover:text-white transition-colors p-1"
+            className="text-black/80 cursor-pointer  dark:text-white/80  transition-colors p-1"
             aria-label="Close chat"
           >
             <XMarkIcon className="w-5 h-5" />
@@ -364,7 +364,7 @@ export default function LiveChatWidget() {
                 value={startName}
                 onChange={(e) => setStartName(e.target.value)}
                 placeholder="আপনার নাম"
-                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl border-none outline-none text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-accent-teal/50 font-bengali"
+                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl border-none outline-none text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-white/50 font-bengali"
               />
             </div>
             <div>
@@ -376,7 +376,7 @@ export default function LiveChatWidget() {
                 value={startPhone}
                 onChange={(e) => setStartPhone(e.target.value)}
                 placeholder="01XXXXXXXXX"
-                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl border-none outline-none text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-accent-teal/50"
+                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl border-none outline-none text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-white/50"
               />
             </div>
             <div>
@@ -388,7 +388,7 @@ export default function LiveChatWidget() {
                 onChange={(e) => setStartMessage(e.target.value)}
                 placeholder="আপনার মেসেজ লিখুন..."
                 rows={3}
-                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl border-none outline-none text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-accent-teal/50 resize-none font-bengali"
+                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-[#1a1a1a] rounded-xl border-none outline-none text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:ring-2 focus:ring-white/50 resize-none font-bengali"
               />
             </div>
             {startError && (
@@ -404,7 +404,7 @@ export default function LiveChatWidget() {
                 !startPhone.trim() ||
                 !startMessage.trim()
               }
-              className="w-full py-3 bg-accent-teal text-white text-sm font-semibold rounded-xl hover:bg-accent-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bengali"
+              className="w-full py-3 bg-white text-white text-sm font-semibold rounded-xl hover:bg-accent-teal/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bengali"
             >
               {startSubmitting
                 ? "শুরু হচ্ছে..."
@@ -520,7 +520,7 @@ export default function LiveChatWidget() {
 
       <button
         onClick={handleToggle}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-accent-teal text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center ${
+        className={`fixed bottom-6 cursor-pointer right-6 z-50 w-14 h-14 rounded-full bg-black text-white dark:bg-white dark:text-black shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center ${
           hasUnread ? "animate-pulse" : ""
         }`}
         aria-label={isOpen ? "Close chat" : "Open live chat"}

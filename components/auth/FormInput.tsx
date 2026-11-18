@@ -36,7 +36,7 @@ export function FormInput({
         )}
         <input
           id={id}
-          className={`w-full py-3 bg-[#111111] dark:bg-[#111111] border border-transparent focus:border-gray-800 dark:focus:border-white rounded-sm text-sm text-white dark:text-white placeholder-gray-500 focus:outline-none! transition-colors ${icon ? "pl-12" : "pl-4"} pr-4`}
+          className={`w-full py-3 bg-[#F8FAFC] dark:bg-[#111111] border border-gray-200 dark:border-transparent focus:border-gray-400 dark:focus:border-white rounded-sm text-sm text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none transition-colors ${icon ? "pl-12" : "pl-4"} pr-4`}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
           {...props}

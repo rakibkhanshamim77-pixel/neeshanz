@@ -155,10 +155,7 @@ const SHOP_LINKS = [
   { label: "Sale", href: "/shop?filter=rating" },
 ];
 
-const HELP_LINKS = [
-  { label: "Track your order", href: "/track-order" },
-  { label: "Shipping info", href: "/shipping" },
-];
+const HELP_LINKS = [{ label: "Track your order", href: "/track-order" }];
 
 const COMPANY_LINKS = [
   { label: "About us", href: "/about" },

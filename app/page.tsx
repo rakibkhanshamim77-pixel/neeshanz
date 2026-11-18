@@ -16,12 +16,12 @@ export default function Home() {
     logo: `${process.env.NEXT_PUBLIC_SITE_URL || ""}/logo.png`,
     sameAs: [
       "https://www.facebook.com/neeshanz",
-      "https://www.instagram.com/neeshanz",
-      "https://www.linkedin.com/company/neeshanz",
+      "https://www.instagram.com/neeshanz7",
+      "https://wa.me/01411788020",
     ],
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: "+8801994844761",
+      telephone: "+8801411788020",
       contactType: "Customer Service",
       email: "contact@neeshanz.com",
     },

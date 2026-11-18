@@ -30,7 +30,7 @@ export function UserMenu() {
 
   const handleLogout = () => {
     setOpen(false);
-    signOut({ callbackUrl: "/", redirect: true });
+    signOut({ callbackUrl: `${window.location.origin}/`, redirect: true });
   };
 
   return (
@@ -76,7 +76,10 @@ export function UserMenu() {
           className="absolute right-0 top-full mt-1 w-48 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#111111] shadow-lg py-1 z-50"
           role="menu"
         >
-          <Link href="/profile" className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] font-bengali">
+          <Link
+            href="/profile"
+            className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#1a1a1a] font-bengali"
+          >
             <UserIcon className="w-4 h-4" />
             প্রোফাইল
           </Link>

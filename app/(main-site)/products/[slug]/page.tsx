@@ -24,7 +24,6 @@ function cleanDescription(value?: string | null): string {
     .slice(0, 160);
 }
 
-// Only JSON-LD images need absolute URLs
 function getAbsoluteImageUrl(image?: string | null): string | undefined {
   if (!image) return undefined;
 
@@ -35,11 +34,11 @@ function getAbsoluteImageUrl(image?: string | null): string | undefined {
   }
 }
 
+// SEO Metadata
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-
   const product = await getProductBySlug(slug);
 
   if (!product) {
@@ -57,18 +56,18 @@ export async function generateMetadata({
   const description = cleanDescription(
     product.shortDescription ||
       product.fullDescription ||
-      `Shop ${product.name} at Neeshanz. Discover premium quality T-shirts at affordable prices.`,
+      `Shop ${product.name} at Neeshanz. Discover premium quality clothing at affordable prices.`,
   );
 
-  // Original database image path for OG and Twitter
-  const image = product.images?.main;
+  // Product image instead of logo
+  const productImage = getAbsoluteImageUrl(product.images?.main);
 
-  const canonical = `/products/${product.slug}`;
+  const canonical = `${SITE_URL}/products/${product.slug}`;
 
   const isActive = product.status === "Active";
 
   return {
-    title,
+    title: `${title} | ${SITE_NAME}`,
     description,
 
     keywords: [
@@ -76,8 +75,8 @@ export async function generateMetadata({
       product.category,
       product.sku,
       "Neeshanz",
-      "Premium T-Shirts",
-      "Buy T-Shirts Online",
+      "Premium Clothing",
+      "Buy Clothes Online",
     ].filter(Boolean),
 
     alternates: {
@@ -100,13 +99,13 @@ export async function generateMetadata({
       url: canonical,
       title: `${title} | ${SITE_NAME}`,
       description,
-
-      // Database image path
-      images: image
+      images: productImage
         ? [
             {
-              url: image,
+              url: productImage,
               alt: product.name,
+              width: 1200,
+              height: 630,
             },
           ]
         : [],
@@ -116,13 +115,12 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: `${title} | ${SITE_NAME}`,
       description,
-
-      // Database image path
-      images: image ? [image] : [],
+      images: productImage ? [productImage] : [],
     },
   };
 }
 
+// Product Details Page
 export default async function Page({ params }: PageProps) {
   const { slug } = await params;
 
@@ -136,13 +134,14 @@ export default async function Page({ params }: PageProps) {
 
   const productUrl = `${SITE_URL}/products/${product.slug}`;
 
-  // Absolute URLs only for JSON-LD
+  // Product images for structured data
   const images = [product.images?.main, ...(product.images?.gallery ?? [])]
     .map(getAbsoluteImageUrl)
     .filter((image): image is string => Boolean(image));
 
   const price = product.pricing?.salePrice ?? product.pricing?.regularPrice;
 
+  // Product Structured Data
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -156,8 +155,12 @@ export default async function Page({ params }: PageProps) {
     image: images,
 
     sku: product.sku,
-
     category: product.category,
+
+    brand: {
+      "@type": "Brand",
+      name: SITE_NAME,
+    },
 
     ...(product.colors?.length > 0 && {
       color: product.colors.map((color: { name: string }) => color.name),
@@ -170,10 +173,8 @@ export default async function Page({ params }: PageProps) {
     offers: {
       "@type": "Offer",
       url: productUrl,
-
       priceCurrency: product.pricing?.currency || "BDT",
-
-      price,
+      price: price,
 
       availability:
         product.totalStock > 0 && isActive
